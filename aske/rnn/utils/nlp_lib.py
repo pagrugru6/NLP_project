@@ -32,8 +32,8 @@ def keep_columns(ds):
     ds.remove_columns(remove_columns)
     return ds
 
-def gen_vocab(sentences, nlp):
-    filepath = "../checkpoint/vocab.pkl"
+def gen_vocab(sentences, language, nlp):
+    filepath = f"../checkpoint/{language}_vocab.pkl"
     if os.path.exists(filepath):
         with open(filepath, "rb") as f:
             vocab, max_len = pickle.load(f)
