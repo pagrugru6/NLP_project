@@ -1,0 +1,11 @@
+bpe_model.py
+__pycache__/
+train/
+ipynb/
+rnn_notes.txt
+validation/
+to do
+questions for TA
+*.pkl
+pdb_notes
+
