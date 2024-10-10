@@ -42,9 +42,9 @@ nlp = get_bpe(sentences, language, vocab_size=2000)
 #sentences = ["hello how are you", "I am fine", "thank you", "this is a sentence on approximately 10 words"]
 #val_sentences = ["and what about you. Have you had a nice weekend?", "I am good", "thanks"]
 # val_sentences = ds_val['context'][:3]
-vocab, max_len = gen_vocab(sentences, nlp)
+vocab, max_len = gen_vocab(sentences, language, nlp)
 print("generated vocab")
-_, max_len_val = gen_vocab(val_sentences, nlp)
+# _, max_len_val = gen_vocab(val_sentences, language, nlp)
 
 sentences = sentences[:9]
 val_sentences = val_sentences[:9]
@@ -58,7 +58,7 @@ epochs = 9
 
 print(f"{vocab=}")
 dataset = SentenceDataset(sentences, vocab, nlp, max_len)
-val_dataset = SentenceDataset(val_sentences, vocab, nlp, max_len_val)
+val_dataset = SentenceDataset(val_sentences, vocab, nlp, max_len)
 dat_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size = 1)
 model = RNNModel(vocab_size, embedding_dim, hidden_dim, num_layers).to(device)
