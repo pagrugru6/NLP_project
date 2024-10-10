@@ -1,4 +1,5 @@
 bpe_model.py
+*.png
 __pycache__/
 train/
 ipynb/

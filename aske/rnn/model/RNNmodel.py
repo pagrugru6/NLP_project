@@ -1,4 +1,5 @@
 import torch
+from tqdm import tqdm
 import torch.nn as nn
 # Define the RNN model
 class RNNModel(nn.Module):
@@ -26,7 +27,7 @@ class RNNModel(nn.Module):
 def train(model, dat_loader, criterion, optimizer, vocab_size):
     model.train()
     total_loss = 0
-    for batch_idx, (inputs, targets) in enumerate(dat_loader):
+    for batch_idx, (inputs, targets) in tqdm(enumerate(dat_loader)):
         inputs, targets = inputs, targets
         batch_size = inputs.size(0)
         
@@ -54,11 +55,13 @@ def train(model, dat_loader, criterion, optimizer, vocab_size):
         
     avg_loss = total_loss / len(dat_loader)
     print(f"Training Loss: {avg_loss}")
+    return avg_loss
 
 # Validation loop
 def validate(model, dat_loader, criterion, vocab_size):
     model.eval()
     total_loss = 0
+    losses = []
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(dat_loader):
             inputs, targets = inputs, targets
@@ -82,6 +85,6 @@ def validate(model, dat_loader, criterion, vocab_size):
             except:
                 breakpoint()
             total_loss += loss.item()
-    
     avg_loss = total_loss / len(dat_loader)
     print(f"Validation Loss: {avg_loss}")
+    return avg_loss
