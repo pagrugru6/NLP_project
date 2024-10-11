@@ -1,4 +1,4 @@
-.PHONY: isort black ruff ruff_fix clean vgae _vgae directions _directions out cancel queue load
+.PHONY: isort black ruff ruff_fix clean rnn _rnn out cancel queue load
 
 format: ## Execute pre-commit hooks to enforce code style.
 	@echo "Running pre-commit hooks for code formatting..."
@@ -8,24 +8,18 @@ format: ## Execute pre-commit hooks to enforce code style.
 clean:
 	rm -f ../slurm_out/*.out
 
-wegay:
-	@sbatch vgaesbatch.sh
+rnn:
+	@sbatch rnnsbatch.sh
 
 # If we dont want to wait for the queue and we don't need any major ressources
-_vgae:
-	python vgaerun.py
-
-directions:
-	@sbatch directionssbatch.sh
+_rnn:
+	python run_rnn.py
 
 load:
 	@echo "module load anaconda3/2022.10"
 	@echo "module load cuda/11.8"
 	@echo "conda activate cluster"
 
-# If we dont want to wait for the queue and we don't need any major ressources
-_directions:
-	python DirectionsRun.py
 
 # @ hides the command when we use it in the terminal
 # $$ is necessary when we want to use multiple commands and concat them.

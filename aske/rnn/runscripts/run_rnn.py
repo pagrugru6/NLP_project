@@ -1,22 +1,16 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import nltk
 import sys
 sys.path.append('../utils')
 sys.path.append('../model')
-from spacy.lang.en import English
-from transformers import AutoTokenizer
-from gensim.models import Word2Vec
-import gensim
 from tqdm import tqdm
-from datasets import load_dataset
 from torch.utils.data import DataLoader
 from nlp_lib import *
 from RNNmodel import *
 from dataset import SentenceDataset
 
-language = "fi" # choose betwen en, ru, ja, fi
+language = "en" # choose betwen en, ru, ja, fi
 print(f"training for language {language}")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {device}")
@@ -46,17 +40,16 @@ vocab, max_len = gen_vocab(sentences, language, nlp)
 print("generated vocab")
 # _, max_len_val = gen_vocab(val_sentences, language, nlp)
 
-sentences = sentences[:9]
-val_sentences = val_sentences[:9]
+sentences = sentences# [:9]
+val_sentences = val_sentences
 vocab_size = len(vocab) # +1, otherwise we get an index out of range during embedding
 batch_size = 1
 embedding_dim = 128
 hidden_dim = 256
 num_layers = 1
 lr = 0.001
-epochs = 9
+epochs = 2 # more epochs isn't needed it went from loss = 4e-2 to 1e-2 in 6 epochs
 
-print(f"{vocab=}")
 dataset = SentenceDataset(sentences, vocab, nlp, max_len)
 val_dataset = SentenceDataset(val_sentences, vocab, nlp, max_len)
 dat_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
@@ -70,8 +63,8 @@ validation_loss = []
 for epoch in range(epochs):
     print(f"Epoch {epoch + 1}/{epochs}:")
     
-    train_loss = train(model, dat_loader, criterion, optimizer, vocab_size)
-    val_loss = validate(model, val_loader, criterion, vocab_size)
+    train_loss = train(model, dat_loader, criterion, optimizer, vocab_size, device)
+    val_loss = validate(model, val_loader, criterion, vocab_size, device)
     training_loss.append(train_loss)
     validation_loss.append(val_loss)
 save_losses(training_loss, validation_loss, language)

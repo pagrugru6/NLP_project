@@ -24,15 +24,15 @@ class RNNModel(nn.Module):
         return torch.zeros(1, batch_size, self.hidden_dim)
 
 
-def train(model, dat_loader, criterion, optimizer, vocab_size):
+def train(model, dat_loader, criterion, optimizer, vocab_size, device):
     model.train()
     total_loss = 0
     for batch_idx, (inputs, targets) in tqdm(enumerate(dat_loader)):
-        inputs, targets = inputs, targets
+        inputs, targets = inputs.to(device), targets.to(device)
         batch_size = inputs.size(0)
         
         # Initialize hidden state
-        hidden = model.init_hidden(batch_size)
+        hidden = model.init_hidden(batch_size).to(device)
         
         # Zero gradients
         optimizer.zero_grad()
@@ -58,17 +58,17 @@ def train(model, dat_loader, criterion, optimizer, vocab_size):
     return avg_loss
 
 # Validation loop
-def validate(model, dat_loader, criterion, vocab_size):
+def validate(model, dat_loader, criterion, vocab_size, device):
     model.eval()
     total_loss = 0
     losses = []
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(dat_loader):
-            inputs, targets = inputs, targets
+            inputs, targets = inputs.to(device), targets.to(device)
             batch_size = inputs.size(0)
             
             # Initialize hidden state
-            hidden = model.init_hidden(batch_size)
+            hidden = model.init_hidden(batch_size).to(device)
             
             # Forward pass
             outputs, hidden = model(inputs, hidden)
