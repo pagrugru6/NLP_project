@@ -20,7 +20,13 @@ ds_fi_val = ds_val.filter(filter_fi), "fi"
 ds_ja_val = ds_val.filter(filter_ja), "ja"
 # Load a translation model (e.g., English to French)
 device = "cuda" if torch.cuda.is_available() else "cpu"
-dataset = "train" # val
+dataset = "val" # val
+train_list = [ds_ru, ds_fi, ds_ja]
+val_list = [ds_ru_val, ds_fi_val, ds_ja_val]
+if dataset == 'val':
+    ds_lst = val_list
+else:
+    ds_lst = train_list
 def edit_questions(ds):
     ds['translated'] = translate(ds['question'])
     return ds
@@ -28,9 +34,8 @@ def edit_questions(ds):
 def save_to_json(ds, filename):
     with open(f"../data/{dataset}/{filename}", "w", encoding='utf-8') as f:
         json.dump(ds.to_dict(), f)
-    print(f"Saved to {filename}")
 
-for curr_ds, lang in [ds_ru, ds_fi, ds_ja]:
+for curr_ds, lang in ds_lst:
     model_name = f"Helsinki-NLP/opus-mt-{lang}-en"
     tokenizer = MarianTokenizer.from_pretrained(model_name)
     model = MarianMTModel.from_pretrained(model_name).to(device)
@@ -43,9 +48,8 @@ for curr_ds, lang in [ds_ru, ds_fi, ds_ja]:
         return translations[0]
 
 
-    curr_ds = curr_ds.select(range(2))
+    # curr_ds = curr_ds.select(range(2))
     curr_ds = curr_ds.map(edit_questions)
     curr_ds = curr_ds.map(add_word_overlap)
-    print(curr_ds.to_dict())
     # save the translated questions to a file
     save_to_json(curr_ds, f"edited_ds_{lang}.json")
