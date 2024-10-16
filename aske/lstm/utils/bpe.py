@@ -1,7 +1,7 @@
 import pickle
 from collections import Counter, defaultdict
 from transformers import AutoTokenizer
-
+from tqdm import tqdm
 class BPE():
     """Byte-Pair Encoding: Subword-based tokenization algorithm."""
     
@@ -20,7 +20,7 @@ class BPE():
             raise ValueError("Corpus and vocab_size must be defined for training.")
         
         # compute the frequencies of each word in the corpus
-        for text in self.corpus:
+        for text in tqdm(self.corpus):
             words_with_offsets = self.tokenizer.backend_tokenizer.pre_tokenizer.pre_tokenize_str(text)
             new_words = [word for word, offset in words_with_offsets]
             for word in new_words:
@@ -28,7 +28,7 @@ class BPE():
 
         # compute the base vocabulary of all characters in the corpus
         alphabet = []
-        for word in self.word_freqs.keys():
+        for word in tqdm(self.word_freqs.keys()):
             for letter in word:
                 if letter not in alphabet:
                     alphabet.append(letter)

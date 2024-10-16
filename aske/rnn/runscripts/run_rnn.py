@@ -14,15 +14,9 @@ language = "en" # choose betwen en, ru, ja, fi
 print(f"training for language {language}")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {device}")
-# ds = load_dataset("coastalcph/tydi_xor_rc")
-# ds_val = ds['validation']
-# ds_train = ds['train']
-# ds = ds_train.filter(filter_langs)
-# ds_val = ds_val.filter(filter_langs)
+
 file = get_sentence_file(language)
 val_file = get_sentence_file(language,val=True)
-# nlp = gen_bpe(file, 2000)
-# test_nlp = gen_bpe("../../to do", 10)
 sentences = []
 val_sentences = []
 with open(file, "r", encoding="utf-8") as f:
@@ -33,9 +27,6 @@ with open(val_file, "r", encoding="utf-8") as f:
         val_sentences.append(line.strip())
 print(len(val_sentences))
 nlp = get_bpe(sentences, language, vocab_size=2000)
-#sentences = ["hello how are you", "I am fine", "thank you", "this is a sentence on approximately 10 words"]
-#val_sentences = ["and what about you. Have you had a nice weekend?", "I am good", "thanks"]
-# val_sentences = ds_val['context'][:3]
 vocab, max_len = gen_vocab(sentences, language, nlp)
 print("generated vocab")
 # _, max_len_val = gen_vocab(val_sentences, language, nlp)
