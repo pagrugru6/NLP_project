@@ -1,1 +1,10 @@
 /andris2583/week4/model_weights
+/andris2583/week4/saved_model
+/andris2583/week4/results
+/train.parquet
+/validation.parquet
+/andris2583/week5/1/fi/mt5_model
+/andris2583/week5/1/ja/mt5_model
+/andris2583/week5/1/ru/mt5_model
+/andris2583/week5/2/mt5_model
+/andris2583/week5/3/mt5_model
