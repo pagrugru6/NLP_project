@@ -16,7 +16,6 @@ class QuestionAnswerDataset(Dataset):
         question = self.data[idx]['translated'] 
         context = self.data[idx]['context']
         label = self.data[idx]['answerable']
-        print(f'{label=}')
         word_overlap = self.data[idx]['word_overlap']
         tok_question = []
         for word in self.nlp.tokenize(question):
@@ -36,5 +35,4 @@ class QuestionAnswerDataset(Dataset):
         tok_context.append(self.vocab['<EOS>'])
         tok_context = tok_context + [self.vocab['<PAD>']] * (self.max_len -
                                                              len(tok_context))
-        print(f'{label=}, {int(label)=}, {torch.tensor(int(label))=}')
         return torch.tensor(tok_question), torch.tensor(tok_context), torch.tensor(word_overlap), torch.tensor(int(label))

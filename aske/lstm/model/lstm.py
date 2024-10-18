@@ -22,7 +22,6 @@ class LSTMClassifier(nn.Module):
 
 def train(model, data_loader, criterion, optimizer, device):
     total_loss = 0
-    print(len(data_loader))
     for batch in tqdm(data_loader):
         question, context, word_overlap, label = batch
         question = question.to(device)
@@ -33,8 +32,6 @@ def train(model, data_loader, criterion, optimizer, device):
 
         optimizer.zero_grad()
         logits = model(context, question, word_overlap)
-        print(logits)
-        print(label)
         loss = criterion(logits, label)
         loss.backward()
         optimizer.step()
@@ -51,22 +48,16 @@ def validate(model, data_loader, criterion, device):
             context = context.to(device)
             question = question.to(device)
             labels = labels.to(device)
-            print(f'{labels=}')
             word_overlap = word_overlap.to(device)
 
             # Get model outputs
             outputs = model(context, question, word_overlap)
-            print(f'{outputs=}')
-            print(f'{labels=}')
-            predicted_labels = torch.argmax(outputs, dim=1).cpu().numpy()  # Convert to predicted labels
-            print(f'{predicted_labels=}')
+            predicted_labels = torch.argmax(outputs, dim=1).cpu().numpy()
             predictions.extend(predicted_labels)
-            true_labels.extend(labels.numpy())  # True labels (from DataLoader)
+            true_labels.extend(labels.cpu().numpy())
 
-    print(f'{true_labels=}')
-    print(f'{predictions=}')
     # Compute F1 score
-    f1 = f1_score(true_labels, predictions, average='binary')  # 'binary' for 0 or 1 classification
+    f1 = f1_score(true_labels, predictions, average='binary')
     print(f"F1 Score: {f1}")
     return f1
 
