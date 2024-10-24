@@ -8,62 +8,57 @@ from transformers import BertTokenizer, BertForTokenClassification, Trainer, Tra
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.metrics import classification_report
 
-# Initialize the tokenizer
 
 MAX_LENGTH = 512
 
-# Tokenize and align labels
-def tokenize_and_align_labels(data,tokenizer):
+def tokenize_and_align_labels(data, tokenizer, max_length=512):
     tokenized_inputs = {
         "input_ids": [],
         "attention_mask": [],
         "labels": []
     }
 
-    for i, context in enumerate(list(data['context'])):
-        question = list(data['question'])[i]
-        answer = list(data['answer'])[i]
+    for i, context in enumerate(data['context']):
+        context = data['context'].iloc[i]
+        question = data['question'].iloc[i]
+        answer = data['answer'].iloc[i]
 
-        # Tokenize the context and question
-        tokenized_context = tokenizer.tokenize(context)
-        tokenized_question = tokenizer.tokenize(question)
+      
+        encoded_input = tokenizer(
+            question,
+            context,
+            max_length=max_length,
+            truncation=True,
+            padding="max_length",
+            return_offsets_mapping=True, 
+        )
 
-        # Skip example if length exceeds MAX_LENGTH
-        if len(tokenized_context) + len(tokenized_question) > MAX_LENGTH:
-            continue
-
-        # Tokenize context and answer
-        context_tokens = tokenizer.tokenize(context)
-        answer_tokens = tokenizer.tokenize(answer)
+      
+        offsets = encoded_input.pop("offset_mapping")
         
-        label_ids = [0] * len(context_tokens)
+      
+        labels = [0] * len(encoded_input['input_ids'])
 
-        # Find the start index of the answer in the context
-        start_index = context.find(answer)
-        if start_index != -1:
-            pre_answer_context = context[:start_index]
-            pre_answer_tokens = tokenizer.tokenize(pre_answer_context)
-            answer_start_token_idx = len(pre_answer_tokens)
+      
+        answer_start_idx = context.find(answer)
+        if answer_start_idx != -1:
+            answer_end_idx = answer_start_idx + len(answer)
+            
+          
+            for idx, (start, end) in enumerate(offsets):
+                if start >= answer_start_idx and end <= answer_end_idx:
+                    labels[idx] = 1 
 
-            for j in range(0, len(answer_tokens)):
-                label_ids[answer_start_token_idx + j] = 1  # Label answer tokens as '1'
+      
+        if len(labels) < max_length:
+            labels += [-100] * (max_length - len(labels))
 
-        # Tokenize and encode for BERT
-        input_ids = tokenizer.convert_tokens_to_ids(context_tokens)
-        attention_mask = [1] * len(input_ids)
-        
-        # Add padding if necessary
-        padding_length = MAX_LENGTH - len(input_ids)
-        input_ids += [tokenizer.pad_token_id] * padding_length
-        attention_mask += [0] * padding_length
-        label_ids += [-100] * padding_length  # Ignore padded tokens during loss computation
+      
+        tokenized_inputs["input_ids"].append(encoded_input["input_ids"])
+        tokenized_inputs["attention_mask"].append(encoded_input["attention_mask"])
+        tokenized_inputs["labels"].append(labels)
 
-        # Append to the tokenized inputs
-        tokenized_inputs['input_ids'].append(input_ids)
-        tokenized_inputs['attention_mask'].append(attention_mask)
-        tokenized_inputs['labels'].append(label_ids)
-    
-    # Convert lists to tensors
+  
     tokenized_inputs["input_ids"] = torch.tensor(tokenized_inputs["input_ids"])
     tokenized_inputs["attention_mask"] = torch.tensor(tokenized_inputs["attention_mask"])
     tokenized_inputs["labels"] = torch.tensor(tokenized_inputs["labels"])
