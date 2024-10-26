@@ -1,0 +1,26 @@
+just do whatever they're doing in https://nbviewer.org/github/coastalcph/nlp-course/blob/master/labs/notebooks_2024/lab_4.ipynb
+And instead you have tags like "ANSWER" and "NOT-ANSWER"
+Why does one use vim above emacs?
+
+
+
+Questions for TA:
+    Are we allowed to just translate every question to english in preprocessing?
+
+
+Done:
+    DONE: I'm not inputting the question to the model right now
+    Doesn't make sense as we're doing binary sequence labelling: Compute BLEU score
+    FIXED I WAS: I believe that I'm currently adding _NOT_IN_ANS tokens as padding
+    (1) Clean git again. You've deleted the lstm atm.
+
+
+Missing for BiLSTM:
+    (1) Make it actually output the answer
+    (2) I'm not considering when the question is unanswerable
+            Maybe add a special token to denote no answer
+    (3) Train every language
+    (4) Move it to cluster and test it. Just use F1 score
+
+In week 4, how do you input the question with the context? Just (question,
+    context) as a tensor?
