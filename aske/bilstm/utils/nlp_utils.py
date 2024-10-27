@@ -99,8 +99,8 @@ def compute_labels(context, answer, vocab):
     ]
 
 
-def gen_vocab(sentences, language, nlp):
-    filepath = f"../checkpoints/vocab/{language}_vocab.pkl"
+def gen_vocab(sentences, language, nlp, vocab_size):
+    filepath = f"../checkpoints/vocab/{language}_{vocab_size}_vocab.pkl"
     if os.path.exists(filepath):
         with open(filepath, "rb") as f:
             vocab, max_len = pickle.load(f)

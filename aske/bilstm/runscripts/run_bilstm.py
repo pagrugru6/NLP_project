@@ -21,17 +21,26 @@ logger.remove(0)
 logger.add(sys.stdout, level="DEBUG")
 language = "fi"
 train_data = get_data_dic(language)
+logger.debug(f'{train_data}')
+train_list = []
+for language in ["fi", "ja", "ru"]:
+    data = get_data_dic(language)
+    lst = [dict(zip(data.keys(), values)) for values in zip(*data.values())]
+    train_list.extend(lst)
+    logger.debug(len(train_list))
+    
+exit()
 val_data = get_data_dic(language, val=True)
-train_list = [
-    dict(zip(train_data.keys(), values)) for values in zip(*train_data.values())
-]
 val_list = [dict(zip(val_data.keys(), values)) for values in zip(*val_data.values())]
 reduced_train_list = train_list[:1]
 reduced_val_list = val_list[:1]
 translated = [train_data["translated"] for train_data in train_list]
 context = [train_data["context"] for train_data in train_list]
-nlp = get_bpe(translated + context, "fi", 1000)
-vocab, max_len = gen_vocab(translated + context, "fi", nlp)
+vocab_size = 20000
+nlp = get_bpe(translated + context, "fi", vocab_size)
+vocab, max_len = gen_vocab(translated + context, "fi", nlp, vocab_size)
+logger.debug(f'{vocab=}')
+exit()
 reverse_vocab = {v: k for k, v in vocab.items()}
 
 
