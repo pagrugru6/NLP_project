@@ -5,20 +5,22 @@ import random
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.corpus import stopwords
+from sklearn.model_selection import train_test_split
 nltk.download('punkt')
 nltk.download('stopwords')
 
-train_data = pd.read_parquet('../train.parquet')
-valid_data = pd.read_parquet('../validation.parquet')
+train_data = pd.concat([pd.read_parquet('../../Translated_Questions/translated_ja_rows.parquet')
+                        ,pd.read_parquet('../../Translated_Questions/translated_fi_rows.parquet')
+                        ,pd.read_parquet('../../Translated_Questions/translated_ru_rows.parquet')])
+# valid_data = pd.read_parquet('../../Translated_Questions/validation.parquet')
 
+train_data, valid_data = train_test_split(train_data, test_size=0.1, random_state=42)
 
-# filtered_train_data = train_data[(train_data.lang.isin(["ja","fi","ru"]))]
 filtered_train_data = train_data[(train_data.lang.isin(["ja","fi","ru"]))]
-# filtered_valid_data = valid_data[(valid_data.lang.isin(["ja","fi","ru"]))]
 filtered_valid_data = valid_data[(valid_data.lang.isin(["ja","fi","ru"]))]
 
-ftda = filtered_train_data[(filtered_train_data.answerable.isin([True]))]["context"]
-ftdna = filtered_train_data[(filtered_train_data.answerable.isin([False]))]["context"]
+ftda = pd.concat([filtered_train_data[(filtered_train_data.answerable.isin([True]))]["question"], filtered_train_data[(filtered_train_data.answerable.isin([True]))]["context"]])
+ftdna = pd.concat([filtered_train_data[(filtered_train_data.answerable.isin([True]))]["question"], filtered_train_data[(filtered_train_data.answerable.isin([False]))]["context"]])
 
 ansWordList = []
 for sentence in list(ftda):
@@ -80,44 +82,27 @@ for word in fd_notAns:
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-# Create separate vectorizers for answerable and unanswerable contexts
 vectorizer_ans = TfidfVectorizer()
 vectorizer_notAns = TfidfVectorizer()
 
 tfidf_ans = vectorizer_ans.fit_transform(ftda)
 tfidf_notAns = vectorizer_notAns.fit_transform(ftdna)
 
-# Get feature names (words) for answerable contexts
 feature_names_ans = vectorizer_ans.get_feature_names_out()
 
-# Get feature names (words) for unanswerable contexts
 feature_names_notAns = vectorizer_notAns.get_feature_names_out()
 
 
 def rule_based_classifier(context):
-  """
-  Classifies a context as answerable or unanswerable based on word presence.
-
-  Args:
-    context: The context string to classify.
-    top_ans_words: List of words associated with answerable contexts.
-    top_not_ans_words: List of words associated with unanswerable contexts.
-
-  Returns:
-    True if the context is classified as answerable, False otherwise.
-  """
-
   tokens = nltk.tokenize.word_tokenize(context)
   ans_score = sum(frequent_words[key] for key in tokens if key in frequent_words)
   not_ans_score = sum(frequent_unanswerable_words[key] for key in tokens if key in frequent_unanswerable_words)
 
-  # Adjust the threshold as needed
   if ans_score > (not_ans_score + 1):
     return True
   else:
     return False
 
-# Example usage
 predictions = []
 true_labels = []
 valid_list = list(valid_data[['context', 'answerable']].itertuples(index=False, name=None));
@@ -127,6 +112,5 @@ for context, label in valid_list:
   predictions.append(prediction)
   true_labels.append(label)
 
-# Evaluate the predictions using accuracy
 accuracy = accuracy_score(true_labels, predictions)
 print(f"Accuracy: {accuracy}")
