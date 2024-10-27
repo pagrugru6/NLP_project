@@ -10,3 +10,4 @@ questions for TA
 *.pkl
 pdb_notes
 rnn/slurm_out/
+bilstm/notes

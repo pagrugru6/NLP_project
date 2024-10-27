@@ -94,7 +94,7 @@ def train(model, train_dl, valid_dl, optimizer, n_epochs, device, scheduler):
                 scheduler.step()
                 learning_rates.append(scheduler.get_last_lr()[0])
 
-        f1 = evaluate(model, valid_dl, device)
+        f1, _, _ = evaluate(model, valid_dl, device)
         logger.info(f'Validation F1: {f1}, train loss: {sum(loss_epoch) / len(loss_epoch)}')
 
         if f1 > best_f1:
@@ -108,22 +108,24 @@ def evaluate(model, valid_dl, device):
     model.eval()
     labels_all = []
     preds_all = []
-
+    predicted_answers = []
+    answers = []
     with torch.no_grad():
         for batch in tqdm(valid_dl, desc='Evaluation'):
             batch = tuple(t.to(device) for t in batch)
             input_ids = batch[0]
             seq_lens = batch[1]
             labels = batch[2]
+            contexts = batch[3]
             hidden_states = None
 
             logits, _, _ = model(input_ids, seq_lens, labels)
-            preds_all.extend(torch.argmax(logits,
-                                          dim=-1).reshape(-1).detach().cpu().numpy())
-            logger.debug(f"Preds: {preds_all}")
+            preds = torch.argmax(logits, dim=-1)
+            preds_all.extend(preds.reshape(-1).detach().cpu().numpy())
             labels_all.extend(labels.reshape(-1).detach().cpu().numpy())
-            print_actual_answer(batch[3], labels[0])
+            predicted_answers.append(get_answer(preds, contexts))
+            answers.append(get_answer(labels, contexts))
     P, R, F1, _ = precision_recall_fscore_support(labels_all, preds_all,
                                                 average='macro')
     logger.info(f"\n Confusion matrix: \n {confusion_matrix(labels_all,preds_all)}")
-    return F1
+    return F1, predicted_answers, answers

@@ -17,6 +17,10 @@ Done:
 
 Missing for BiLSTM:
     (1) Make it actually output the answer
+        Make it return the predicted labels and the actual labels as a list
+            No, make it return the tokens of the context which actually
+            constitutes the answer using the labels
+        Use the reversed dictionary to generate the actual answers
     (2) I'm not considering when the question is unanswerable
             Maybe add a special token to denote no answer
     (3) Train every language
