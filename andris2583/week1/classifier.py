@@ -108,6 +108,21 @@ true_labels = []
 valid_list = list(valid_data[['context', 'answerable']].itertuples(index=False, name=None));
 random.shuffle(valid_list)
 for context, label in valid_list:
+  label = True
+  if random.randrange(0,2) == 0:
+    label = False
+  prediction = rule_based_classifier(context)
+  predictions.append(prediction)
+  true_labels.append(label)
+
+accuracy = accuracy_score(true_labels, predictions)
+print(f"Baseline: {accuracy}")
+
+predictions = []
+true_labels = []
+valid_list = list(valid_data[['context', 'answerable']].itertuples(index=False, name=None));
+random.shuffle(valid_list)
+for context, label in valid_list:
   prediction = rule_based_classifier(context)
   predictions.append(prediction)
   true_labels.append(label)
