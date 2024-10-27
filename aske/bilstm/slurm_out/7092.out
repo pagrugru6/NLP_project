@@ -1,0 +1,28 @@
+
+=== RUNNING rnn =============
+
+0
+2024-10-27 13:28:30.834 | INFO     | bpe:load:119 - Model loaded from ../checkpoints/bpe/bpe_model_fi_1000.pkl
+  0%|          | 0/266 [00:00<?, ?it/s]  0%|          | 0/266 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/hlp179/nlp/aske/bilstm/runscripts/run_bilstm.py", line 99, in <module>
+    losses, learning_rates = train(
+                             ^^^^^^
+  File "/home/hlp179/nlp/aske/bilstm/runscripts/../model/bilstm.py", line 79, in train
+    for batch in tqdm(train_dl):
+  File "/opt/software/anaconda3/2024.06-py3.12.4/lib/python3.12/site-packages/tqdm/std.py", line 1181, in __iter__
+    for obj in iterable:
+  File "/home/hlp179/.local/lib/python3.12/site-packages/torch/utils/data/dataloader.py", line 630, in __next__
+    data = self._next_data()
+           ^^^^^^^^^^^^^^^^^
+  File "/home/hlp179/.local/lib/python3.12/site-packages/torch/utils/data/dataloader.py", line 673, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/hlp179/.local/lib/python3.12/site-packages/torch/utils/data/_utils/fetch.py", line 55, in fetch
+    return self.collate_fn(data)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/hlp179/nlp/aske/bilstm/runscripts/run_bilstm.py", line 72, in collate_batch_bilstm
+    torch.tensor(_contexts),
+    ^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: expected sequence of length 280 at dim 1 (got 165)
+... done <3

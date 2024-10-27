@@ -1,0 +1,11 @@
+
+=== RUNNING rnn =============
+
+0
+Traceback (most recent call last):
+  File "/home/hlp179/nlp/aske/bilstm/runscripts/run_bilstm.py", line 10, in <module>
+    from bilstm import *
+  File "/home/hlp179/nlp/aske/bilstm/runscripts/../model/bilstm.py", line 3, in <module>
+    from loguru import logger
+ModuleNotFoundError: No module named 'loguru'
+... done <3

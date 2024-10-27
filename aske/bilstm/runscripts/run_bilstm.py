@@ -19,7 +19,6 @@ create_dirs()
 
 logger.remove(0)
 logger.add(sys.stdout, level="DEBUG")
-logger.info("This is a debug message")
 language = "fi"
 train_data = get_data_dic(language)
 val_data = get_data_dic(language, val=True)
@@ -65,26 +64,27 @@ def collate_batch_bilstm(input_data):
     # 2 is the id of the <PAD> token but we don't want to pad with 2 in the labels as
     # they aren't passed to the model
     final_labels = [(i + [0] * (max_len - len(i))) for i in labels]
+    padded_contexts = [(c + [2] * (max_len-len(c))) for c in _contexts]
     assert all(len(x) == max_len for x in padded_q_c)
     return (
         torch.tensor(padded_q_c),
         torch.tensor(seq_lens),
         torch.tensor(final_labels),
-        torch.tensor(_contexts),
+        torch.tensor(padded_contexts),
     )
 
 
 train_dl = DataLoader(
-    reduced_train_list, batch_size=1, shuffle=False, collate_fn=collate_batch_bilstm
+    train_list, batch_size=8, shuffle=False, collate_fn=collate_batch_bilstm
 )
 valid_dl = DataLoader(
-    reduced_val_list, batch_size=1, shuffle=False, collate_fn=collate_batch_bilstm
+    val_list, batch_size=1, shuffle=False, collate_fn=collate_batch_bilstm
 )
 lstm_dim = 128
 dropout_prob = 0.1
 batch_size = 8
 lr = 1e-2
-n_epochs = 1
+n_epochs = 5
 n_classes = 2
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = BiLSTM(len(vocab), lstm_dim, dropout_prob, n_classes).to(device)

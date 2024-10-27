@@ -88,7 +88,6 @@ def encode(text, vocab):
 
 
 def decode(indices, reverse_vocab):
-    logger.debug(f"{reverse_vocab=}")
     return [reverse_vocab[i.item()] for i in indices]
 
 

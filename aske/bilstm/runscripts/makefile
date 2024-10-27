@@ -1,4 +1,4 @@
-.PHONY: isort black ruff ruff_fix clean lstm lstm_ out cancel queue load
+.PHONY: isort black ruff ruff_fix clean bilstm bilstm_ out cancel queue load
 
 format: ## Execute pre-commit hooks to enforce code style.
 	@echo "Running pre-commit hooks for code formatting..."
@@ -8,11 +8,11 @@ format: ## Execute pre-commit hooks to enforce code style.
 clean:
 	rm -f ../slurm_out/*.out
 
-lstm:
+bilstm:
 	@sbatch sbatchbilstm.sh
 
 # If we dont want to wait for the queue and we don't need any major ressources
-_lstm:
+_bilstm:
 	python run_bilstm.py
 
 load:
