@@ -19,28 +19,26 @@ create_dirs()
 
 logger.remove(0)
 logger.add(sys.stdout, level="DEBUG")
-language = "fi"
-train_data = get_data_dic(language)
-logger.debug(f'{train_data}')
+languages = ["fi", "ja", "ru"]
 train_list = []
+val_list = []
 for language in ["fi", "ja", "ru"]:
-    data = get_data_dic(language)
-    lst = [dict(zip(data.keys(), values)) for values in zip(*data.values())]
+    t_data = get_data_dic(language)
+    lst = [dict(zip(t_data.keys(), values)) for values in zip(*t_data.values())]
     train_list.extend(lst)
-    logger.debug(len(train_list))
-    
-exit()
-val_data = get_data_dic(language, val=True)
-val_list = [dict(zip(val_data.keys(), values)) for values in zip(*val_data.values())]
-reduced_train_list = train_list[:1]
-reduced_val_list = val_list[:1]
+    v_data = get_data_dic(language, val=True)
+    v_lst = (
+        [dict(zip(v_data.keys(), values)) for values in zip(*v_data.values())],
+        language,
+    )
+    val_list.append(v_lst)
+
+
 translated = [train_data["translated"] for train_data in train_list]
 context = [train_data["context"] for train_data in train_list]
-vocab_size = 20000
+vocab_size = 1000
 nlp = get_bpe(translated + context, "fi", vocab_size)
 vocab, max_len = gen_vocab(translated + context, "fi", nlp, vocab_size)
-logger.debug(f'{vocab=}')
-exit()
 reverse_vocab = {v: k for k, v in vocab.items()}
 
 
@@ -73,7 +71,7 @@ def collate_batch_bilstm(input_data):
     # 2 is the id of the <PAD> token but we don't want to pad with 2 in the labels as
     # they aren't passed to the model
     final_labels = [(i + [0] * (max_len - len(i))) for i in labels]
-    padded_contexts = [(c + [2] * (max_len-len(c))) for c in _contexts]
+    padded_contexts = [(c + [2] * (max_len - len(c))) for c in _contexts]
     assert all(len(x) == max_len for x in padded_q_c)
     return (
         torch.tensor(padded_q_c),
@@ -83,17 +81,21 @@ def collate_batch_bilstm(input_data):
     )
 
 
+# logger.debug(train_list[0])
+# exit()
 train_dl = DataLoader(
-    train_list, batch_size=8, shuffle=False, collate_fn=collate_batch_bilstm
+    train_list[:2], batch_size=1, shuffle=True, collate_fn=collate_batch_bilstm
 )
-valid_dl = DataLoader(
-    val_list, batch_size=1, shuffle=False, collate_fn=collate_batch_bilstm
+logger.debug(train_list[:2])
+logger.debug(val_list[0][1])
+tmp_valid_dl = DataLoader(
+        val_list[0][0][:2], batch_size=1, shuffle=False, collate_fn=collate_batch_bilstm
 )
 lstm_dim = 128
 dropout_prob = 0.1
 batch_size = 8
 lr = 1e-2
-n_epochs = 5
+n_epochs = 1
 n_classes = 2
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = BiLSTM(len(vocab), lstm_dim, dropout_prob, n_classes).to(device)
@@ -106,13 +108,14 @@ scheduler = CyclicLR(
     step_size_down=len(train_dl) * n_epochs,
     cycle_momentum=False,
 )
+logger.debug(tmp_valid_dl)
 losses, learning_rates = train(
-    model, train_dl, valid_dl, optimizer, n_epochs, device, scheduler
+    model, train_dl, tmp_valid_dl, optimizer, n_epochs, device, scheduler
 )
-F1, predicted_answer, answer = evaluate(model, valid_dl, device)
-[
-    logger.info(
-        f"\npredicted: {''.join(decode(p, reverse_vocab))} \n answer: {''.join(decode(a, reverse_vocab))}")
-    for p, a in zip(predicted_answer, answer)
-]
-model.load_state_dict(torch.load("best_model"))
+for v_lst, language in val_list:
+    valid_dl = DataLoader(
+            v_lst[:2], batch_size=1, shuffle=False, collate_fn=collate_batch_bilstm
+    )
+    P, R, F1, predicted_answer, answer = evaluate(model, valid_dl, device)
+    logger.info(f"{language=}, {P=}, {R=}, {F1=}")
+    model.load_state_dict(torch.load("best_model"))

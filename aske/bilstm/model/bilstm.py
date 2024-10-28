@@ -94,7 +94,7 @@ def train(model, train_dl, valid_dl, optimizer, n_epochs, device, scheduler):
                 scheduler.step()
                 learning_rates.append(scheduler.get_last_lr()[0])
 
-        f1, _, _ = evaluate(model, valid_dl, device)
+        _, _, f1, _, _ = evaluate(model, valid_dl, device)
         logger.info(f'Validation F1: {f1}, train loss: {sum(loss_epoch) / len(loss_epoch)}')
 
         if f1 > best_f1:
@@ -128,4 +128,4 @@ def evaluate(model, valid_dl, device):
     P, R, F1, _ = precision_recall_fscore_support(labels_all, preds_all,
                                                 average='macro')
     logger.info(f"\n Confusion matrix: \n {confusion_matrix(labels_all,preds_all)}")
-    return F1, predicted_answers, answers
+    return P, R, F1, predicted_answers, answers

@@ -19,13 +19,14 @@ Done:
             constitutes the answer using the labels
         Use the reversed dictionary to generate the actual answers
 
-    (2) I'm not considering when the question is unanswerable
+    Done: (2) I'm not considering when the question is unanswerable
             Maybe add a special token to denote no answer
 
+    DONT DO: (3) Get only the answer token once such that we dont get confusing answers in the actualanswer (not the predicted one) remove the token whenever it's labelled as an answer.
+    Done: (3) Train every language
+        Try to run it now and see if it works. Else fix it. Maybe consider
+        recall and precision next to F1, this isn't posted atm.
 Missing for BiLSTM:
-    (3) Get only the answer token once such that we dont get confusing answers in the actualanswer (not the predicted one)
-	remove the token whenever it's labelled as an answer.
-    (3) Train every language
     (4) Move it to cluster and test it. Just use F1 score
 
 In week 4, how do you input the question with the context? Just (question,
