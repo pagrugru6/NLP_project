@@ -19,6 +19,7 @@ create_dirs()
 
 logger.remove(0)
 logger.add(sys.stdout, level="DEBUG")
+language = "all"
 languages = ["fi", "ja", "ru"]
 train_list = []
 val_list = []
@@ -37,8 +38,8 @@ for language in ["fi", "ja", "ru"]:
 translated = [train_data["translated"] for train_data in train_list]
 context = [train_data["context"] for train_data in train_list]
 vocab_size = 1000
-nlp = get_bpe(translated + context, "fi", vocab_size)
-vocab, max_len = gen_vocab(translated + context, "fi", nlp, vocab_size)
+nlp = get_bpe(translated + context, language, vocab_size)
+vocab, max_len = gen_vocab(translated + context, language, nlp, vocab_size)
 reverse_vocab = {v: k for k, v in vocab.items()}
 
 
@@ -118,4 +119,8 @@ for v_lst, language in val_list:
     )
     P, R, F1, predicted_answer, answer = evaluate(model, valid_dl, device)
     logger.info(f"{language=}, {P=}, {R=}, {F1=}")
+    # for p, a in zip(predicted_answer, answer):
+    #     logger.info(
+    #         f"\npredicted: {''.join(decode(p, reverse_vocab))} \n answer: {''.join(decode(a, reverse_vocab))}"
+    #     )
     model.load_state_dict(torch.load("best_model"))
