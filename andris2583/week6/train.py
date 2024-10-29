@@ -18,7 +18,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def prepare_data(samples, tokenizer=None, max_input_length=256, max_target_length=32):
     contexts = samples['context']
     questions = samples['question']
-    answers = samples['answer_inlang']
+    answers = samples['answer']
 
     inputs = [f"{context} {question}" for context, question in zip(contexts, questions)]
     
@@ -46,15 +46,13 @@ def collate_fn(batch):
 
     return {'input_ids': input_ids, 'attention_mask': attention_mask, 'labels': labels}
 
-data = pd.read_parquet('../../../../Translated_Questions/Only_Answers/translated_fi_answers.parquet', 
+data = pd.concat([pd.read_parquet('../../Translated_Questions//translated_fi_rows.parquet', 
                        columns=['context', 'question', 'answerable','answer', 'lang','answer_inlang'], 
-                       filters=[('lang', 'in', ['fi'])])
-
-no_answers = data[data['answer_inlang'] == 'Ei']
-other_answers = data[data['answer_inlang'] != 'Ei']
-undersampled_no_answers = no_answers.sample(frac=0.1, random_state=42)
-data = pd.concat([undersampled_no_answers, other_answers])
-data = data.sample(frac=1, random_state=42).reset_index(drop=True)
+                       filters=[('lang', 'in', ['fi'])]),pd.read_parquet('../../Translated_Questions//translated_ru_rows.parquet', 
+                       columns=['context', 'question', 'answerable','answer', 'lang','answer_inlang'], 
+                       filters=[('lang', 'in', ['ru'])]),pd.read_parquet('../../Translated_Questions//translated_ja_rows.parquet', 
+                       columns=['context', 'question', 'answerable','answer', 'lang','answer_inlang'], 
+                       filters=[('lang', 'in', ['ja'])])])
 
 train_data, valid_data = train_test_split(data, test_size=0.1, random_state=42)
 train_dataset = Dataset.from_pandas(train_data)
