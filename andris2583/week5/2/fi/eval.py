@@ -15,35 +15,25 @@ model_dir = './bart_model/'
 model = BartForConditionalGeneration.from_pretrained(model_dir).to(device)
 tokenizer = BartTokenizer.from_pretrained(model_dir)
 
-data = pd.read_parquet('../../../../Translated_Questions/Only_Answers/translated_ja_answers.parquet', 
+data = pd.read_parquet('../../../../Translated_Questions/Only_Answers/translated_fi_answers.parquet', 
                        columns=['context', 'question', 'answerable', 'answer', 'lang', 'answer_inlang'], 
-                       filters=[('lang', 'in', ['ja'])])
+                       filters=[('lang', 'in', ['fi'])])
 
 train_data, valid_data = train_test_split(data, test_size=0.1, random_state=42)
 
 valid_data['id'] = valid_data.index.astype(str)  
 valid_dataset = Dataset.from_pandas(valid_data)
 
-def prepare_data(samples, tokenizer=None, max_input_length=256, max_target_length=64):
-    contexts = samples['context']
+def prepare_data(samples, tokenizer=None, max_input_length=512, max_target_length=32):
     questions = samples['question']
-    answers = samples['answer_inlang']
-
-    inputs = [f"{context} {question}" for context, question in zip(contexts, questions)]
-    
+    inlang_answers = samples['answer_inlang']
     model_inputs = tokenizer(
-        inputs, max_length=max_input_length, truncation=True, padding="max_length"
+        questions, max_length=max_input_length, truncation=True, padding="max_length"
     )
-    
     labels = tokenizer(
-        answers, max_length=max_target_length, truncation=True, padding="max_length"
+        inlang_answers, max_length=max_target_length, truncation=True, padding="max_length"
     ).input_ids
 
-    labels = [
-        [(label if label != tokenizer.pad_token_id else -100) for label in label_example]
-        for label_example in labels
-    ]
-    
     model_inputs["labels"] = labels
     return model_inputs
 

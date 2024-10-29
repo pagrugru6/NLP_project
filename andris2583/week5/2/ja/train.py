@@ -15,22 +15,21 @@ tokenizer = BartTokenizer.from_pretrained(MODEL_NAME)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def prepare_data(samples, tokenizer=None, max_input_length=256, max_target_length=32):
-    contexts = samples['context']
-    questions = samples['question']
+def prepare_data(samples, tokenizer=None, max_input_length=128, max_target_length=16):
+    inputs = samples['question']
     answers = samples['answer_inlang']
-
-    inputs = [f"{context} {question}" for context, question in zip(contexts, questions)]
     
+
     model_inputs = tokenizer(
         inputs, max_length=max_input_length, truncation=True, padding="max_length"
     )
     
+
     labels = tokenizer(
         answers, max_length=max_target_length, truncation=True, padding="max_length"
     ).input_ids
 
-  
+
     labels = [
         [(label if label != tokenizer.pad_token_id else -100) for label in label_example]
         for label_example in labels

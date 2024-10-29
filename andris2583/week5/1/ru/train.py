@@ -1,5 +1,6 @@
 from datasets import Dataset
-from transformers import MT5ForConditionalGeneration, MT5Tokenizer, AdamW, get_linear_schedule_with_warmup
+from sklearn.model_selection import train_test_split
+from transformers import BartForConditionalGeneration, BartTokenizer, AdamW, get_linear_schedule_with_warmup
 from torch.utils.data import DataLoader
 from torch import nn
 import torch
@@ -7,37 +8,36 @@ import pandas as pd
 import random
 from tqdm import tqdm
 from functools import partial
+from transformers import Trainer, TrainingArguments, DataCollatorForSeq2Seq, default_data_collator, EarlyStoppingCallback  
 
-MODEL_NAME = 'google/mt5-small'
-tokenizer = MT5Tokenizer.from_pretrained(MODEL_NAME)
+MODEL_NAME = 'facebook/bart-base'
+tokenizer = BartTokenizer.from_pretrained(MODEL_NAME)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
-def prepare_data(samples, tokenizer=None, max_input_length=512, max_target_length=64):
-    """
-    Tokenize input data in the format: "[context] [question]" and target as the answer.
-    """
-    # Treat samples as a dictionary with lists
+def prepare_data(samples, tokenizer=None, max_input_length=256, max_target_length=32):
     contexts = samples['context']
     questions = samples['question']
     answers = samples['answer_inlang']
 
-    # Prepare the input text as "[context] [question]"
     inputs = [f"{context} {question}" for context, question in zip(contexts, questions)]
     
-    # Tokenize inputs (context + question)
     model_inputs = tokenizer(
         inputs, max_length=max_input_length, truncation=True, padding="max_length"
     )
-
-    # Tokenize targets (answers)
+    
     labels = tokenizer(
         answers, max_length=max_target_length, truncation=True, padding="max_length"
     ).input_ids
 
+  
+    labels = [
+        [(label if label != tokenizer.pad_token_id else -100) for label in label_example]
+        for label_example in labels
+    ]
+    
     model_inputs["labels"] = labels
     return model_inputs
-
 
 def collate_fn(batch):
     input_ids = torch.tensor([item['input_ids'] for item in batch], dtype=torch.long)
@@ -46,62 +46,56 @@ def collate_fn(batch):
 
     return {'input_ids': input_ids, 'attention_mask': attention_mask, 'labels': labels}
 
+data = pd.read_parquet('../../../../Translated_Questions/Only_Answers/translated_ru_answers.parquet', 
+                       columns=['context', 'question', 'answerable','answer', 'lang','answer_inlang'], 
+                       filters=[('lang', 'in', ['ru'])])
 
-def train(model, train_dl, optimizer, scheduler, n_epochs, device):
-    model.train()
-    scaler = torch.cuda.amp.GradScaler()
+no_answers = data[data['answer_inlang'] == 'Нет']
+other_answers = data[data['answer_inlang'] != 'Нет']
+undersampled_no_answers = no_answers.sample(frac=0.1, random_state=42)
+data = pd.concat([undersampled_no_answers, other_answers])
+data = data.sample(frac=1, random_state=42).reset_index(drop=True)
 
-    for ep in range(n_epochs):
-        running_loss = 0.0
-        optimizer.zero_grad()
+train_data, valid_data = train_test_split(data, test_size=0.1, random_state=42)
+train_dataset = Dataset.from_pandas(train_data)
+valid_dataset = Dataset.from_pandas(valid_data)
 
-        # Iterate through each batch
-        for batch in tqdm(train_dl):
-            batch = {k: v.to(device) for k, v in batch.items()}
+tokenized_train = train_dataset.map(partial(prepare_data, tokenizer=tokenizer), batched=True)
+tokenized_valid = valid_dataset.map(partial(prepare_data, tokenizer=tokenizer), batched=True)
 
-            with torch.cuda.amp.autocast():
-                outputs = model(**batch)
-                loss = outputs.loss / accumulation_steps
+model = BartForConditionalGeneration.from_pretrained(MODEL_NAME).to(device)
 
-            # Backward pass with mixed precision
-            scaler.scale(loss).backward()
+data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizer, model=model, label_pad_token_id=-100)
 
-            scaler.step(optimizer)
-            scaler.update()
-            scheduler.step()
-            optimizer.zero_grad()
+training_args = TrainingArguments(
+    output_dir="./bart_model",
+    per_device_train_batch_size=4,
+    per_device_eval_batch_size=4,
+    num_train_epochs=5,
+    evaluation_strategy="epoch",
+    save_strategy="epoch",
+    learning_rate=5e-5,
+    logging_dir="./logs",
+    logging_steps=100,
+    save_total_limit=0,
+    fp16=False,
+    load_best_model_at_end=True,
+    metric_for_best_model="eval_loss",
+    greater_is_better=False,
+    weight_decay=0.01,
+    max_grad_norm=1.0,
+)
 
-            running_loss += loss.item()
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=tokenized_train,
+    eval_dataset=tokenized_valid,
+    tokenizer=tokenizer,
+    data_collator=default_data_collator,
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=1)],
+)
+trainer.train()
 
-        print(f"Epoch {ep+1}/{n_epochs} Loss: {running_loss/len(train_dl)}")
-
-
-# Data loading
-train_data = pd.read_parquet('../../../../train.parquet', columns=['context', 'question', 'answerable', 'answer', 'lang','answer_inlang'], filters=[('lang', 'in', ['ru']),('answer_inlang', '!=', 'null')])
-valid_data = pd.read_parquet('../../../../validation.parquet', columns=['context', 'question', 'answerable', 'answer', 'lang','answer_inlang'], filters=[('lang', 'in', ['ru']),('answer_inlang', '!=', 'null')])
-
-train_data = Dataset.from_pandas(train_data)
-valid_data = Dataset.from_pandas(valid_data)
-
-# Tokenization
-tokenized_train = train_data.map(partial(prepare_data, tokenizer=tokenizer), batched=True)
-tokenized_valid = valid_data.map(partial(prepare_data, tokenizer=tokenizer), batched=True)
-
-train_dl = DataLoader(tokenized_train, collate_fn=collate_fn, shuffle=True, batch_size=4)
-valid_dl = DataLoader(tokenized_valid, collate_fn=collate_fn, shuffle=False, batch_size=4)
-
-# Model setup
-model = MT5ForConditionalGeneration.from_pretrained(MODEL_NAME).to(device)
-n_epochs = 3
-accumulation_steps = 4
-
-# Optimizer and scheduler
-optimizer = AdamW(model.parameters(), lr=2e-5)
-scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=200, num_training_steps=n_epochs * len(train_dl))
-
-# Training
-train(model, train_dl, optimizer, scheduler, n_epochs, device)
-
-# Save the model
-model.save_pretrained('./mt5_model')
-tokenizer.save_pretrained('./mt5_model')
+model.save_pretrained('./bart_model')
+tokenizer.save_pretrained('./bart_model')

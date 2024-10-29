@@ -1,6 +1,6 @@
 from sklearn.model_selection import train_test_split
 import torch
-from transformers import BartForConditionalGeneration, BartTokenizer
+from transformers import MT5ForConditionalGeneration, MT5Tokenizer
 from torch.utils.data import DataLoader
 from datasets import Dataset
 import pandas as pd
@@ -11,39 +11,28 @@ from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-model_dir = './bart_model/'
-model = BartForConditionalGeneration.from_pretrained(model_dir).to(device)
-tokenizer = BartTokenizer.from_pretrained(model_dir)
+model_dir = './mt5_model/'
+model = MT5ForConditionalGeneration.from_pretrained(model_dir).to(device)
+tokenizer = MT5Tokenizer.from_pretrained(model_dir)
 
-data = pd.read_parquet('../../../../Translated_Questions/Only_Answers/translated_ja_answers.parquet', 
-                       columns=['context', 'question', 'answerable', 'answer', 'lang', 'answer_inlang'], 
-                       filters=[('lang', 'in', ['ja'])])
-
+data = pd.read_parquet('../../../../Translated_Questions/Only_Answers/translated_ru_answers.parquet', 
+                       columns=['context', 'question', 'answerable','answer', 'lang','answer_inlang'], 
+                       filters=[('lang', 'in', ['ru'])])
 train_data, valid_data = train_test_split(data, test_size=0.1, random_state=42)
 
 valid_data['id'] = valid_data.index.astype(str)  
 valid_dataset = Dataset.from_pandas(valid_data)
 
-def prepare_data(samples, tokenizer=None, max_input_length=256, max_target_length=64):
-    contexts = samples['context']
-    questions = samples['question']
-    answers = samples['answer_inlang']
-
-    inputs = [f"{context} {question}" for context, question in zip(contexts, questions)]
-    
+def prepare_data(samples, tokenizer=None, max_input_length=64, max_target_length=32):
+    english_answers = samples['answer']
+    inlang_answers = samples['answer_inlang']
     model_inputs = tokenizer(
-        inputs, max_length=max_input_length, truncation=True, padding="max_length"
+        english_answers, max_length=max_input_length, truncation=True, padding="max_length"
     )
-    
     labels = tokenizer(
-        answers, max_length=max_target_length, truncation=True, padding="max_length"
+        inlang_answers, max_length=max_target_length, truncation=True, padding="max_length"
     ).input_ids
 
-    labels = [
-        [(label if label != tokenizer.pad_token_id else -100) for label in label_example]
-        for label_example in labels
-    ]
-    
     model_inputs["labels"] = labels
     return model_inputs
 
@@ -71,10 +60,13 @@ def generate_answers(model, valid_dl):
     return all_predictions
 
 tokenized_valid = valid_dataset.map(partial(prepare_data, tokenizer=tokenizer), batched=True)
+
 valid_dl = DataLoader(tokenized_valid, collate_fn=collate_fn, shuffle=False, batch_size=4)
 
 generated_answers = generate_answers(model, valid_dl)
+
 predictions = [{'id': str(i), 'prediction_text': pred} for i, pred in enumerate(generated_answers)]
+
 gold = [{'id': example['id'], 'answers': example['answer_inlang']} for _, example in valid_data.iterrows()]
 
 def compute_metrics(predictions, references, tokenizer):
@@ -91,8 +83,8 @@ def compute_metrics(predictions, references, tokenizer):
         pred_tokens = tokenizer.tokenize(pred_text)
         ref_tokens = tokenizer.tokenize(true_text)
 
-        print([ref_tokens], pred_tokens)
-        bleu_score_total += sentence_bleu([ref_tokens], pred_tokens, smoothing_function=chencherry.method2)
+        print([ref_tokens],pred_tokens)
+        bleu_score_total += sentence_bleu([ref_tokens], pred_tokens, smoothing_function=chencherry.method1)
 
     exact_match = 100.0 * exact_match / total
     avg_bleu = bleu_score_total / total
