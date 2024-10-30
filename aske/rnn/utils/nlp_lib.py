@@ -32,8 +32,8 @@ def keep_columns(ds):
     ds.remove_columns(remove_columns)
     return ds
 
-def gen_vocab(sentences, language, nlp):
-    filepath = f"../checkpoint/{language}_vocab.pkl"
+def gen_vocab(sentences, language, vocab_size, nlp):
+    filepath = f"../checkpoint/{language}_{vocab_size}_vocab.pkl"
     if os.path.exists(filepath):
         with open(filepath, "rb") as f:
             vocab, max_len = pickle.load(f)
@@ -55,18 +55,6 @@ def gen_vocab(sentences, language, nlp):
             pickle.dump((vocab, max_len), f)
         return vocab, max_len
 
-def gen_bpe(text_file, vocab_size):
-    # computing time spent on this function
-    start = time.time()
-    with open(text_file, encoding="utf8") as f:
-        corpus = f.readlines()
-    MyBPE = BPE(corpus=corpus, vocab_size=vocab_size)
-    MyBPE.train()
-    end = time.time()
-    print(f"Time spent on BPE training: {end - start}")
-    return MyBPE
-
-
 def get_sentence_file(language, val=False):
     if val:
         return f"../validation/val_{language}_sentences.txt"
@@ -74,8 +62,17 @@ def get_sentence_file(language, val=False):
         return f"../train/train_{language}_sentences.txt"
 
 def get_bpe(sentences, language, vocab_size):
-    nlp = BPE(sentences, vocab_size)
-    nlp.load(f'../checkpoint/bpe_model_{language}.pkl')
+    my_file = '../checkpoint/bpe_model_{language}_{vocab_size}.pkl'
+    nlp = BPE(corpus=sentences, vocab_size=vocab_size)
+    if os.path.exists(my_file):
+        nlp.load(f"{my_file}")
+    else:
+        print(
+            f"Training BPE model for {language}, as {my_file} doesn't exist, for \
+              vocab size {vocab_size}"
+        )
+        nlp.train()
+        nlp.save(f"{my_file}")
     return nlp
 
 def save_losses(training_losses, validation_losses, language):

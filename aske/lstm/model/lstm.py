@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 from tqdm import tqdm 
-from sklearn.metrics import f1_score
+from sklearn.metrics import precision_recall_fscore_support, confusion_matrix
 class LSTMClassifier(nn.Module):
     def __init__(self, vocab_size, embed_size, hidden_size):
         super(LSTMClassifier, self).__init__()
@@ -57,7 +57,10 @@ def validate(model, data_loader, criterion, device):
             true_labels.extend(labels.cpu().numpy())
 
     # Compute F1 score
-    f1 = f1_score(true_labels, predictions, average='binary')
-    print(f"F1 Score: {f1}")
-    return f1
+    P, R, F1, _ = precision_recall_fscore_support(true_labels, predictions, average='binary')
+    print(f"F1 Score: {F1}")
+    print(f"P score: {P}")
+    print(f"R score: {R}")
+    print(f"Confusion matrix: {confusion_matrix(true_labels, predictions)}")
+    return F1
 

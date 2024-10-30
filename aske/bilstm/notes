@@ -26,8 +26,10 @@ Done:
     Done: (3) Train every language
         Try to run it now and see if it works. Else fix it. Maybe consider
         recall and precision next to F1, this isn't posted atm.
+    DONE: (4) Move it to cluster and test it. Just use F1 score
 Missing for BiLSTM:
-    (4) Move it to cluster and test it. Just use F1 score
+    (5) Implement perplexity for week 2
+    (6) Run week 2 for every language and compute perplexity for all of them.
 
 In week 4, how do you input the question with the context? Just (question,
     context) as a tensor?

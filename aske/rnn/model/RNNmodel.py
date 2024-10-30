@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from tqdm import tqdm
 import torch.nn as nn
 # Define the RNN model
@@ -62,6 +63,7 @@ def validate(model, dat_loader, criterion, vocab_size, device):
     model.eval()
     total_loss = 0
     losses = []
+    loss_all = []
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(dat_loader):
             inputs, targets = inputs.to(device), targets.to(device)
@@ -84,7 +86,10 @@ def validate(model, dat_loader, criterion, vocab_size, device):
                 loss = criterion(outputs, targets)
             except:
                 breakpoint()
+            loss_all.append(loss.detach().cpu().numpy())
             total_loss += loss.item()
     avg_loss = total_loss / len(dat_loader)
     print(f"Validation Loss: {avg_loss}")
-    return avg_loss
+    perplexity = np.exp(sum(loss_all) / len(loss_all))
+    print(f"perplexity: {perplexity}")
+    return avg_loss, perplexity

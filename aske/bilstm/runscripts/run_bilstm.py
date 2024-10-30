@@ -19,7 +19,6 @@ create_dirs()
 
 logger.remove(0)
 logger.add(sys.stdout, level="DEBUG")
-language = "all"
 languages = ["fi", "ja", "ru"]
 train_list = []
 val_list = []
@@ -34,10 +33,11 @@ for language in ["fi", "ja", "ru"]:
     )
     val_list.append(v_lst)
 
+language = "all"
 
 translated = [train_data["translated"] for train_data in train_list]
 context = [train_data["context"] for train_data in train_list]
-vocab_size = 1000
+vocab_size = 20000
 nlp = get_bpe(translated + context, language, vocab_size)
 vocab, max_len = gen_vocab(translated + context, language, nlp, vocab_size)
 reverse_vocab = {v: k for k, v in vocab.items()}
@@ -85,18 +85,15 @@ def collate_batch_bilstm(input_data):
 # logger.debug(train_list[0])
 # exit()
 train_dl = DataLoader(
-    train_list[:2], batch_size=1, shuffle=True, collate_fn=collate_batch_bilstm
+    train_list, batch_size=8, shuffle=True, collate_fn=collate_batch_bilstm
 )
-logger.debug(train_list[:2])
-logger.debug(val_list[0][1])
 tmp_valid_dl = DataLoader(
-        val_list[0][0][:2], batch_size=1, shuffle=False, collate_fn=collate_batch_bilstm
+        val_list[0][0], batch_size=1, shuffle=False, collate_fn=collate_batch_bilstm
 )
 lstm_dim = 128
 dropout_prob = 0.1
-batch_size = 8
 lr = 1e-2
-n_epochs = 1
+n_epochs = 4
 n_classes = 2
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = BiLSTM(len(vocab), lstm_dim, dropout_prob, n_classes).to(device)
@@ -115,12 +112,8 @@ losses, learning_rates = train(
 )
 for v_lst, language in val_list:
     valid_dl = DataLoader(
-            v_lst[:2], batch_size=1, shuffle=False, collate_fn=collate_batch_bilstm
+            v_lst, batch_size=1, shuffle=False, collate_fn=collate_batch_bilstm
     )
     P, R, F1, predicted_answer, answer = evaluate(model, valid_dl, device)
     logger.info(f"{language=}, {P=}, {R=}, {F1=}")
-    # for p, a in zip(predicted_answer, answer):
-    #     logger.info(
-    #         f"\npredicted: {''.join(decode(p, reverse_vocab))} \n answer: {''.join(decode(a, reverse_vocab))}"
-    #     )
-    model.load_state_dict(torch.load("best_model"))
+    # model.load_state_dict(torch.load("best_model"))

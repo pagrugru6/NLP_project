@@ -23,7 +23,7 @@ for language in languages:
 
     translated = [train_data['translated'] for train_data in train_list]
     context = [train_data['context'] for train_data in train_list]
-    nlp = get_bpe(translated + context, language, 1000)
+    nlp = get_bpe(translated + context, language, 20000)
     vocab, max_len = gen_vocab(translated + context, language, nlp)
 
     batch_size = 32

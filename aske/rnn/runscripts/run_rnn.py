@@ -10,52 +10,54 @@ from nlp_lib import *
 from RNNmodel import *
 from dataset import SentenceDataset
 
-language = "en" # choose betwen en, ru, ja, fi
-print(f"training for language {language}")
+languages = ["en", "ru", "ja", "fi"]
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {device}")
+for language in languages:
+    print(f"training for language {language}")
 
-file = get_sentence_file(language)
-val_file = get_sentence_file(language,val=True)
-sentences = []
-val_sentences = []
-with open(file, "r", encoding="utf-8") as f:
-    for line in f:
-        sentences.append(line.strip())
-with open(val_file, "r", encoding="utf-8") as f:
-    for line in f:
-        val_sentences.append(line.strip())
-print(len(val_sentences))
-nlp = get_bpe(sentences, language, vocab_size=2000)
-vocab, max_len = gen_vocab(sentences, language, nlp)
-print("generated vocab")
-# _, max_len_val = gen_vocab(val_sentences, language, nlp)
+    file = get_sentence_file(language)
+    val_file = get_sentence_file(language,val=True)
+    sentences = []
+    val_sentences = []
+    with open(file, "r", encoding="utf-8") as f:
+        for line in f:
+            sentences.append(line.strip())
+    with open(val_file, "r", encoding="utf-8") as f:
+        for line in f:
+            val_sentences.append(line.strip())
+    print(len(val_sentences))
+    vocab_size = 20000
+    nlp = get_bpe(sentences, language, vocab_size=vocab_size)
+    vocab, max_len = gen_vocab(sentences, language, vocab_size, nlp)
+    print("generated vocab")
+    # _, max_len_val = gen_vocab(val_sentences, language, nlp)
 
-sentences = sentences# [:9]
-val_sentences = val_sentences
-vocab_size = len(vocab) # +1, otherwise we get an index out of range during embedding
-batch_size = 1
-embedding_dim = 128
-hidden_dim = 256
-num_layers = 1
-lr = 0.001
-epochs = 2 # more epochs isn't needed it went from loss = 4e-2 to 1e-2 in 6 epochs
+    sentences = sentences# [:9]
+    val_sentences = val_sentences
+    vocab_size = len(vocab) # +1, otherwise we get an index out of range during embedding
+    batch_size = 1
+    embedding_dim = 128
+    hidden_dim = 256
+    num_layers = 1
+    lr = 0.001
+    epochs = 2 # more epochs isn't needed it went from loss = 4e-2 to 1e-2 in 6 epochs
 
-dataset = SentenceDataset(sentences, vocab, nlp, max_len)
-val_dataset = SentenceDataset(val_sentences, vocab, nlp, max_len)
-dat_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size = 1)
-model = RNNModel(vocab_size, embedding_dim, hidden_dim, num_layers).to(device)
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=lr)
+    dataset = SentenceDataset(sentences, vocab, nlp, max_len)
+    val_dataset = SentenceDataset(val_sentences, vocab, nlp, max_len)
+    dat_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size = 1)
+    model = RNNModel(vocab_size, embedding_dim, hidden_dim, num_layers).to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
-training_loss = []
-validation_loss = []
-for epoch in range(epochs):
-    print(f"Epoch {epoch + 1}/{epochs}:")
-    
-    train_loss = train(model, dat_loader, criterion, optimizer, vocab_size, device)
-    val_loss = validate(model, val_loader, criterion, vocab_size, device)
-    training_loss.append(train_loss)
-    validation_loss.append(val_loss)
-save_losses(training_loss, validation_loss, language)
+    training_loss = []
+    validation_loss = []
+    for epoch in range(epochs):
+        print(f"Epoch {epoch + 1}/{epochs}:")
+        
+        train_loss = train(model, dat_loader, criterion, optimizer, vocab_size, device)
+        val_loss, _ = validate(model, val_loader, criterion, vocab_size, device)
+        training_loss.append(train_loss)
+        validation_loss.append(val_loss)
+    save_losses(training_loss, validation_loss, language)

@@ -6,7 +6,7 @@
 #SBATCH -p gpu --gres=gpu:titanx:1
 #We expect that our program should not run longer than 1 hours
 #Note that a program will be killed once it exceeds this time!  
-#SBATCH --time=2:00:00
+#SBATCH --time=4:00:00
 
 #your script, in this case: write the hostname and the ids of the chosen gpus.
 
